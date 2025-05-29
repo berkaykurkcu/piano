@@ -37,8 +37,6 @@ extension NoteAccidentals on Note {
         return [Accidental.Flat, Accidental.Sharp];
       case Note.B:
         return [Accidental.Flat];
-      default:
-        return [];
     }
   }
 
@@ -71,7 +69,7 @@ extension NoteName on Note {
 }
 
 @freezed
-class NotePosition with _$NotePosition {
+abstract class NotePosition with _$NotePosition {
   factory NotePosition({
     required Note note,
     @Default(4) int octave,
