@@ -4,6 +4,8 @@ import 'package:collection/collection.dart';
 
 import 'note_position.dart';
 import 'note_range.dart';
+import 'note_name_system.dart';
+import 'note_name_converter.dart';
 
 typedef OnNotePositionTapped = void Function(NotePosition position);
 
@@ -32,6 +34,18 @@ class InteractivePiano extends StatefulWidget {
 
   /// Whether to hide note names on keys.
   final bool hideNoteNames;
+
+  /// Whether to show note names on keys (takes precedence over hideNoteNames if both are set).
+  final bool? showNoteNames;
+
+  /// Which notation system to use for note names.
+  final NoteNameSystem noteNameSystem;
+
+  /// Custom text style for note names.
+  final TextStyle? noteNameTextStyle;
+
+  /// Custom color for note name text.
+  final Color? noteNameTextColor;
 
   /// Whether to hide the scroll bar, that appears below the keys.
   final bool hideScrollbar;
@@ -75,6 +89,10 @@ class InteractivePiano extends StatefulWidget {
       this.animateHighlightedNotes = false,
       this.useAlternativeAccidentals = false,
       this.hideNoteNames = false,
+      this.showNoteNames,
+      this.noteNameSystem = NoteNameSystem.alphabetic,
+      this.noteNameTextStyle,
+      this.noteNameTextColor,
       this.hideScrollbar = false,
       this.onNotePositionTapped,
       this.noteToScrollTo,
@@ -196,7 +214,10 @@ class _InteractivePianoState extends State<InteractivePiano> {
                                 .map((note) => _PianoKey(
                                     notePosition: note,
                                     color: widget.naturalColor,
-                                    hideNoteName: widget.hideNoteNames,
+                                    hideNoteName: !_shouldShowNoteNames,
+                                    noteNameSystem: widget.noteNameSystem,
+                                    noteNameTextStyle: widget.noteNameTextStyle,
+                                    noteNameTextColor: widget.noteNameTextColor,
                                     isAnimated: widget
                                             .animateHighlightedNotes &&
                                         widget.highlightedNotes.contains(note),
@@ -222,7 +243,10 @@ class _InteractivePianoState extends State<InteractivePiano> {
                                           (note) => _PianoKey(
                                             notePosition: note,
                                             color: widget.accidentalColor,
-                                            hideNoteName: widget.hideNoteNames,
+                                            hideNoteName: !_shouldShowNoteNames,
+                                            noteNameSystem: widget.noteNameSystem,
+                                            noteNameTextStyle: widget.noteNameTextStyle,
+                                            noteNameTextColor: widget.noteNameTextColor,
                                             isAnimated: widget
                                                     .animateHighlightedNotes &&
                                                 widget.highlightedNotes
@@ -249,6 +273,9 @@ class _InteractivePianoState extends State<InteractivePiano> {
       widget.onNotePositionTapped == null
           ? null
           : () => widget.onNotePositionTapped!(notePosition);
+
+  bool get _shouldShowNoteNames =>
+      widget.showNoteNames ?? !widget.hideNoteNames;
 }
 
 class _PianoKey extends StatefulWidget {
@@ -256,6 +283,9 @@ class _PianoKey extends StatefulWidget {
   final double keyWidth;
   final BorderRadius _borderRadius;
   final bool hideNoteName;
+  final NoteNameSystem noteNameSystem;
+  final TextStyle? noteNameTextStyle;
+  final Color? noteNameTextColor;
   final VoidCallback? onTap;
   final bool isAnimated;
 
@@ -266,6 +296,9 @@ class _PianoKey extends StatefulWidget {
     required this.notePosition,
     required this.keyWidth,
     required this.hideNoteName,
+    required this.noteNameSystem,
+    this.noteNameTextStyle,
+    this.noteNameTextColor,
     required this.onTap,
     required this.isAnimated,
     required Color color,
@@ -391,18 +424,20 @@ class __PianoKeyState extends State<_PianoKey>
                         : Padding(
                             padding: const EdgeInsets.all(2),
                             child: Text(
-                              widget.notePosition.name,
+                              NoteNameConverter.convertNote(
+                                  widget.notePosition.note, widget.noteNameSystem),
                               textAlign: TextAlign.center,
-                              textScaleFactor: 1.0,
-                              style: TextStyle(
+                              textScaler: TextScaler.linear(1.0),
+                              style: widget.noteNameTextStyle ?? TextStyle(
                                 fontSize: widget.keyWidth / 3.5,
-                                color: widget.notePosition.accidental ==
+                                color: widget.noteNameTextColor ?? 
+                                       (widget.notePosition.accidental ==
                                         Accidental.None
                                     ? (widget.notePosition ==
                                             NotePosition.middleC)
                                         ? Colors.white
                                         : Colors.black
-                                    : Colors.white,
+                                    : Colors.white),
                               ),
                             ),
                           ),
