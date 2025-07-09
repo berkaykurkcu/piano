@@ -254,8 +254,10 @@ class _InteractivePianoState extends State<InteractivePiano> {
                                     correctColor: widget.correctColor,
                                     incorrectColor: widget.incorrectColor,
                                     targetColor: widget.targetColor,
-                                    animateTrainingStates: widget.animateTrainingStates,
-                                    trainingStateAnimationDuration: widget.trainingStateAnimationDuration,
+                                    animateTrainingStates:
+                                        widget.animateTrainingStates,
+                                    trainingStateAnimationDuration:
+                                        widget.trainingStateAnimationDuration,
                                     keyWidth: _lastKeyWidth,
                                     onTap: _onNoteTapped(note)))
                                 .toList(),
@@ -275,9 +277,12 @@ class _InteractivePianoState extends State<InteractivePiano> {
                                             notePosition: note,
                                             color: widget.accidentalColor,
                                             hideNoteName: !_shouldShowNoteNames,
-                                            noteNameSystem: widget.noteNameSystem,
-                                            noteNameTextStyle: widget.noteNameTextStyle,
-                                            noteNameTextColor: widget.noteNameTextColor,
+                                            noteNameSystem:
+                                                widget.noteNameSystem,
+                                            noteNameTextStyle:
+                                                widget.noteNameTextStyle,
+                                            noteNameTextColor:
+                                                widget.noteNameTextColor,
                                             isAnimated: widget
                                                     .animateHighlightedNotes &&
                                                 widget.highlightedNotes
@@ -287,12 +292,16 @@ class _InteractivePianoState extends State<InteractivePiano> {
                                                     .contains(note)
                                                 ? widget.highlightColor
                                                 : null,
-                                            trainingState: _getTrainingState(note),
+                                            trainingState:
+                                                _getTrainingState(note),
                                             correctColor: widget.correctColor,
-                                            incorrectColor: widget.incorrectColor,
+                                            incorrectColor:
+                                                widget.incorrectColor,
                                             targetColor: widget.targetColor,
-                                            animateTrainingStates: widget.animateTrainingStates,
-                                            trainingStateAnimationDuration: widget.trainingStateAnimationDuration,
+                                            animateTrainingStates:
+                                                widget.animateTrainingStates,
+                                            trainingStateAnimationDuration: widget
+                                                .trainingStateAnimationDuration,
                                             keyWidth: _lastKeyWidth,
                                             onTap: _onNoteTapped(note),
                                           ),
@@ -359,7 +368,8 @@ class _PianoKey extends StatefulWidget {
   })  : _borderRadius = BorderRadius.only(
             bottomLeft: Radius.circular(keyWidth * 0.2),
             bottomRight: Radius.circular(keyWidth * 0.2)),
-        _color = _getEffectiveColor(color, highlightColor, trainingState, correctColor, incorrectColor, targetColor),
+        _color = _getEffectiveColor(color, highlightColor, trainingState,
+            correctColor, incorrectColor, targetColor),
         super(key: key);
 
   static Color _getEffectiveColor(
@@ -374,12 +384,12 @@ class _PianoKey extends StatefulWidget {
     if (trainingState.isCorrect) return correctColor;
     if (trainingState.isIncorrect) return incorrectColor;
     if (trainingState.isTarget) return targetColor;
-    
+
     // Priority 2: Highlight state (medium priority)
     if (highlightColor != null) {
       return Color.lerp(baseColor, highlightColor, 0.5) ?? highlightColor;
     }
-    
+
     // Priority 3: Default state (lowest priority)
     return baseColor;
   }
@@ -388,8 +398,7 @@ class _PianoKey extends StatefulWidget {
   __PianoKeyState createState() => __PianoKeyState();
 }
 
-class __PianoKeyState extends State<_PianoKey>
-    with TickerProviderStateMixin {
+class __PianoKeyState extends State<_PianoKey> with TickerProviderStateMixin {
   late AnimationController _highlightController;
   late AnimationController _trainingController;
   late Animation<double> _highlightAnimation;
@@ -428,7 +437,7 @@ class __PianoKeyState extends State<_PianoKey>
       TweenSequenceItem(tween: ConstantTween(animationBegin), weight: 50)
     ]).animate(_highlightController);
 
-    // Training state animation controller is initialized but 
+    // Training state animation controller is initialized but
     // color animation will be implemented in a future enhancement
   }
 
@@ -438,12 +447,12 @@ class __PianoKeyState extends State<_PianoKey>
     if (widget.isAnimated != oldWidget.isAnimated) {
       _startOrStopHighlightAnimation();
     }
-    
+
     // Handle training state changes
     if (widget.trainingState != oldWidget.trainingState) {
       _handleTrainingStateChange();
     }
-    
+
     super.didUpdateWidget(oldWidget);
   }
 
@@ -466,6 +475,13 @@ class __PianoKeyState extends State<_PianoKey>
     if (widget.animateTrainingStates) {
       _trainingController.forward();
     }
+  }
+
+  String _getDisplayName(NotePosition notePosition, NoteNameSystem system) {
+    final noteName = NoteNameConverter.convertNote(notePosition.note, system);
+    final accidental = notePosition.accidental.symbol;
+    final octave = notePosition.octave.toString();
+    return '$noteName$accidental$octave';
   }
 
   @override
@@ -523,21 +539,22 @@ class __PianoKeyState extends State<_PianoKey>
                         : Padding(
                             padding: const EdgeInsets.all(2),
                             child: Text(
-                              NoteNameConverter.convertNote(
-                                  widget.notePosition.note, widget.noteNameSystem),
+                              _getDisplayName(
+                                  widget.notePosition, widget.noteNameSystem),
                               textAlign: TextAlign.center,
                               textScaler: TextScaler.linear(1.0),
-                              style: widget.noteNameTextStyle ?? TextStyle(
-                                fontSize: widget.keyWidth / 3.5,
-                                color: widget.noteNameTextColor ?? 
-                                       (widget.notePosition.accidental ==
-                                        Accidental.None
-                                    ? (widget.notePosition ==
-                                            NotePosition.middleC)
-                                        ? Colors.white
-                                        : Colors.black
-                                    : Colors.white),
-                              ),
+                              style: widget.noteNameTextStyle ??
+                                  TextStyle(
+                                    fontSize: widget.keyWidth / 4.5,
+                                    color: widget.noteNameTextColor ??
+                                        (widget.notePosition.accidental ==
+                                                Accidental.None
+                                            ? (widget.notePosition ==
+                                                    NotePosition.middleC)
+                                                ? Colors.white
+                                                : Colors.black
+                                            : Colors.white),
+                                  ),
                             ),
                           ),
                   ),
