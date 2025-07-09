@@ -39,6 +39,9 @@ class InteractivePiano extends StatefulWidget {
   /// Whether to show note names on keys (takes precedence over hideNoteNames if both are set).
   final bool? showNoteNames;
 
+  /// Whether to show octave numbers with note names (C4, D4, etc.).
+  final bool showOctaveNumbers;
+
   /// Which notation system to use for note names.
   final NoteNameSystem noteNameSystem;
 
@@ -109,6 +112,7 @@ class InteractivePiano extends StatefulWidget {
       this.useAlternativeAccidentals = false,
       this.hideNoteNames = false,
       this.showNoteNames,
+      this.showOctaveNumbers = true,
       this.noteNameSystem = NoteNameSystem.alphabetic,
       this.noteNameTextStyle,
       this.noteNameTextColor,
@@ -240,6 +244,7 @@ class _InteractivePianoState extends State<InteractivePiano> {
                                     notePosition: note,
                                     color: widget.naturalColor,
                                     hideNoteName: !_shouldShowNoteNames,
+                                    showOctaveNumbers: widget.showOctaveNumbers,
                                     noteNameSystem: widget.noteNameSystem,
                                     noteNameTextStyle: widget.noteNameTextStyle,
                                     noteNameTextColor: widget.noteNameTextColor,
@@ -277,6 +282,7 @@ class _InteractivePianoState extends State<InteractivePiano> {
                                             notePosition: note,
                                             color: widget.accidentalColor,
                                             hideNoteName: !_shouldShowNoteNames,
+                                            showOctaveNumbers: widget.showOctaveNumbers,
                                             noteNameSystem:
                                                 widget.noteNameSystem,
                                             noteNameTextStyle:
@@ -333,6 +339,7 @@ class _PianoKey extends StatefulWidget {
   final double keyWidth;
   final BorderRadius _borderRadius;
   final bool hideNoteName;
+  final bool showOctaveNumbers;
   final NoteNameSystem noteNameSystem;
   final TextStyle? noteNameTextStyle;
   final Color? noteNameTextColor;
@@ -352,6 +359,7 @@ class _PianoKey extends StatefulWidget {
     required this.notePosition,
     required this.keyWidth,
     required this.hideNoteName,
+    required this.showOctaveNumbers,
     required this.noteNameSystem,
     this.noteNameTextStyle,
     this.noteNameTextColor,
@@ -480,7 +488,7 @@ class __PianoKeyState extends State<_PianoKey> with TickerProviderStateMixin {
   String _getDisplayName(NotePosition notePosition, NoteNameSystem system) {
     final noteName = NoteNameConverter.convertNote(notePosition.note, system);
     final accidental = notePosition.accidental.symbol;
-    final octave = notePosition.octave.toString();
+    final octave = widget.showOctaveNumbers ? notePosition.octave.toString() : '';
     return '$noteName$accidental$octave';
   }
 
