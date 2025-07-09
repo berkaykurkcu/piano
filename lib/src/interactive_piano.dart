@@ -6,6 +6,7 @@ import 'note_position.dart';
 import 'note_range.dart';
 import 'note_name_system.dart';
 import 'note_name_converter.dart';
+import 'note_training_state.dart';
 
 typedef OnNotePositionTapped = void Function(NotePosition position);
 
@@ -46,6 +47,24 @@ class InteractivePiano extends StatefulWidget {
 
   /// Custom color for note name text.
   final Color? noteNameTextColor;
+
+  /// Map of notes to their training states for chord training exercises.
+  final Map<NotePosition, NoteTrainingState> trainingStates;
+
+  /// Color for correctly pressed keys in training mode.
+  final Color correctColor;
+
+  /// Color for incorrectly pressed keys in training mode.
+  final Color incorrectColor;
+
+  /// Color for target notes that need to be pressed.
+  final Color targetColor;
+
+  /// Whether to animate training state transitions.
+  final bool animateTrainingStates;
+
+  /// Duration for training state animations.
+  final Duration trainingStateAnimationDuration;
 
   /// Whether to hide the scroll bar, that appears below the keys.
   final bool hideScrollbar;
@@ -93,6 +112,12 @@ class InteractivePiano extends StatefulWidget {
       this.noteNameSystem = NoteNameSystem.alphabetic,
       this.noteNameTextStyle,
       this.noteNameTextColor,
+      this.trainingStates = const {},
+      this.correctColor = Colors.green,
+      this.incorrectColor = Colors.red,
+      this.targetColor = Colors.blue,
+      this.animateTrainingStates = true,
+      this.trainingStateAnimationDuration = const Duration(milliseconds: 300),
       this.hideScrollbar = false,
       this.onNotePositionTapped,
       this.noteToScrollTo,
@@ -225,6 +250,12 @@ class _InteractivePianoState extends State<InteractivePiano> {
                                         widget.highlightedNotes.contains(note)
                                             ? widget.highlightColor
                                             : null,
+                                    trainingState: _getTrainingState(note),
+                                    correctColor: widget.correctColor,
+                                    incorrectColor: widget.incorrectColor,
+                                    targetColor: widget.targetColor,
+                                    animateTrainingStates: widget.animateTrainingStates,
+                                    trainingStateAnimationDuration: widget.trainingStateAnimationDuration,
                                     keyWidth: _lastKeyWidth,
                                     onTap: _onNoteTapped(note)))
                                 .toList(),
@@ -256,6 +287,12 @@ class _InteractivePianoState extends State<InteractivePiano> {
                                                     .contains(note)
                                                 ? widget.highlightColor
                                                 : null,
+                                            trainingState: _getTrainingState(note),
+                                            correctColor: widget.correctColor,
+                                            incorrectColor: widget.incorrectColor,
+                                            targetColor: widget.targetColor,
+                                            animateTrainingStates: widget.animateTrainingStates,
+                                            trainingStateAnimationDuration: widget.trainingStateAnimationDuration,
                                             keyWidth: _lastKeyWidth,
                                             onTap: _onNoteTapped(note),
                                           ),
@@ -274,6 +311,10 @@ class _InteractivePianoState extends State<InteractivePiano> {
           ? null
           : () => widget.onNotePositionTapped!(notePosition);
 
+  NoteTrainingState _getTrainingState(NotePosition note) {
+    return widget.trainingStates[note] ?? NoteTrainingState.none;
+  }
+
   bool get _shouldShowNoteNames =>
       widget.showNoteNames ?? !widget.hideNoteNames;
 }
@@ -288,6 +329,12 @@ class _PianoKey extends StatefulWidget {
   final Color? noteNameTextColor;
   final VoidCallback? onTap;
   final bool isAnimated;
+  final NoteTrainingState trainingState;
+  final Color correctColor;
+  final Color incorrectColor;
+  final Color targetColor;
+  final bool animateTrainingStates;
+  final Duration trainingStateAnimationDuration;
 
   final Color _color;
 
@@ -301,35 +348,73 @@ class _PianoKey extends StatefulWidget {
     this.noteNameTextColor,
     required this.onTap,
     required this.isAnimated,
+    required this.trainingState,
+    required this.correctColor,
+    required this.incorrectColor,
+    required this.targetColor,
+    required this.animateTrainingStates,
+    required this.trainingStateAnimationDuration,
     required Color color,
     Color? highlightColor,
   })  : _borderRadius = BorderRadius.only(
             bottomLeft: Radius.circular(keyWidth * 0.2),
             bottomRight: Radius.circular(keyWidth * 0.2)),
-        _color = (highlightColor != null)
-            ? Color.lerp(color, highlightColor, 0.5) ?? highlightColor
-            : color,
+        _color = _getEffectiveColor(color, highlightColor, trainingState, correctColor, incorrectColor, targetColor),
         super(key: key);
+
+  static Color _getEffectiveColor(
+    Color baseColor,
+    Color? highlightColor,
+    NoteTrainingState trainingState,
+    Color correctColor,
+    Color incorrectColor,
+    Color targetColor,
+  ) {
+    // Priority 1: Training states (highest priority)
+    if (trainingState.isCorrect) return correctColor;
+    if (trainingState.isIncorrect) return incorrectColor;
+    if (trainingState.isTarget) return targetColor;
+    
+    // Priority 2: Highlight state (medium priority)
+    if (highlightColor != null) {
+      return Color.lerp(baseColor, highlightColor, 0.5) ?? highlightColor;
+    }
+    
+    // Priority 3: Default state (lowest priority)
+    return baseColor;
+  }
 
   @override
   __PianoKeyState createState() => __PianoKeyState();
 }
 
 class __PianoKeyState extends State<_PianoKey>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+    with TickerProviderStateMixin {
+  late AnimationController _highlightController;
+  late AnimationController _trainingController;
+  late Animation<double> _highlightAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    const animationBegin = 1.0;
-    const animationEnd = 0.95;
-    _controller = AnimationController(
+    // Initialize highlight animation controller
+    _highlightController = AnimationController(
         duration: const Duration(milliseconds: 2000), vsync: this);
 
-    _animation = TweenSequence(<TweenSequenceItem<double>>[
+    // Initialize training state animation controller
+    _trainingController = AnimationController(
+        duration: widget.trainingStateAnimationDuration, vsync: this);
+
+    _setupAnimations();
+    _startOrStopHighlightAnimation();
+  }
+
+  void _setupAnimations() {
+    // Existing highlight animation
+    const animationBegin = 1.0;
+    const animationEnd = 0.95;
+    _highlightAnimation = TweenSequence(<TweenSequenceItem<double>>[
       TweenSequenceItem<double>(
         tween: Tween<double>(begin: animationBegin, end: animationEnd)
             .chain(CurveTween(curve: Curves.decelerate)),
@@ -341,31 +426,45 @@ class __PianoKeyState extends State<_PianoKey>
         weight: 20.0,
       ),
       TweenSequenceItem(tween: ConstantTween(animationBegin), weight: 50)
-    ]).animate(_controller);
+    ]).animate(_highlightController);
 
-    _startOrStopAnimation();
+    // Training state animation controller is initialized but 
+    // color animation will be implemented in a future enhancement
   }
 
   @override
   void didUpdateWidget(covariant _PianoKey oldWidget) {
+    // Handle highlight animation changes
     if (widget.isAnimated != oldWidget.isAnimated) {
-      _startOrStopAnimation();
+      _startOrStopHighlightAnimation();
     }
+    
+    // Handle training state changes
+    if (widget.trainingState != oldWidget.trainingState) {
+      _handleTrainingStateChange();
+    }
+    
     super.didUpdateWidget(oldWidget);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
-
+    _highlightController.dispose();
+    _trainingController.dispose();
     super.dispose();
   }
 
-  void _startOrStopAnimation() {
+  void _startOrStopHighlightAnimation() {
     if (widget.isAnimated) {
-      _controller.repeat(reverse: false);
+      _highlightController.repeat(reverse: false);
     } else {
-      _controller.reset();
+      _highlightController.reset();
+    }
+  }
+
+  void _handleTrainingStateChange() {
+    if (widget.animateTrainingStates) {
+      _trainingController.forward();
     }
   }
 
@@ -379,7 +478,7 @@ class __PianoKeyState extends State<_PianoKey>
                         : 0.04))
                 .ceilToDouble()),
         child: ScaleTransition(
-          scale: _animation,
+          scale: _highlightAnimation,
           child: Stack(
             clipBehavior: Clip.none,
             children: [

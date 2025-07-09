@@ -12,3 +12,4 @@ export 'src/clef_painter.dart';
 
 export 'src/note_name_system.dart';
 export 'src/note_name_converter.dart';
+export 'src/note_training_state.dart';
